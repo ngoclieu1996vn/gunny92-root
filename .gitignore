@@ -1,0 +1,16 @@
+# Gunny 9.2 Root .gitignore
+# Ignore subdirectories that are separate repositories (cloned via init.sh / init.ps1)
+WebPortal/
+Gunny92/
+macOS_Client/
+
+# Temporary and installer directories
+SQLEXPR_x64_ENU/
+scratch/
+*.tmp
+*.log
+
+# Windows thumbnail and system files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
