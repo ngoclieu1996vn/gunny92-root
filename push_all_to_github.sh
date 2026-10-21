@@ -9,12 +9,13 @@
 
 set -e
 
-GITHUB_USER="$1"
+GITHUB_USER="${1:-ngoclieu1996vn}"
 PROTOCOL="${2:-https}"
+TOKEN="${3:-$GITHUB_TOKEN}"
 
 if [ -z "${GITHUB_USER}" ]; then
     echo "ERROR: Please specify your GitHub username or organization."
-    echo "Usage: ./push_all_to_github.sh <YOUR_GITHUB_USERNAME> [https|ssh]"
+    echo "Usage: ./push_all_to_github.sh <YOUR_GITHUB_USERNAME> [https|ssh] [TOKEN]"
     exit 1
 fi
 
@@ -22,6 +23,8 @@ get_repo_url() {
     local repo_name="$1"
     if [ "${PROTOCOL}" = "ssh" ]; then
         echo "git@github.com:${GITHUB_USER}/${repo_name}.git"
+    elif [ -n "${TOKEN}" ]; then
+        echo "https://${TOKEN}@github.com/${GITHUB_USER}/${repo_name}.git"
     else
         echo "https://github.com/${GITHUB_USER}/${repo_name}.git"
     fi

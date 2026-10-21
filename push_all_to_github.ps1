@@ -4,12 +4,16 @@
 #   .\push_all_to_github.ps1 -GitHubUser "myaccount" [-Protocol "https"|"ssh"]
 # ==============================================================================
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubUser,
-    [string]$Protocol = "https"
+    [string]$GitHubUser = "ngoclieu1996vn",
+    [string]$Protocol = "https",
+    [string]$Token = ""
 )
 
 $ErrorActionPreference = "Continue"
+
+if ($env:Path -notlike "*Git\cmd*") {
+    $env:Path += ";C:\Program Files\Git\cmd"
+}
 
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host " Pushing all Gunny 9.2 Repositories to GitHub" -ForegroundColor Cyan
@@ -21,6 +25,8 @@ function Get-RepoUrl {
     param([string]$RepoName)
     if ($Protocol -eq "ssh") {
         return "git@github.com:$GitHubUser/$RepoName.git"
+    } elseif ($Token) {
+        return "https://${Token}@github.com/$GitHubUser/$RepoName.git"
     } else {
         return "https://github.com/$GitHubUser/$RepoName.git"
     }

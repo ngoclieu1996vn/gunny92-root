@@ -4,11 +4,15 @@
 #   .\init.ps1 [-GitHubUser "myuser"] [-Protocol "https"|"ssh"]
 # ==============================================================================
 param(
-    [string]$GitHubUser = "YOUR_USERNAME",
+    [string]$GitHubUser = "ngoclieu1996vn",
     [string]$Protocol = "https"
 )
 
 $ErrorActionPreference = "Continue"
+
+if ($env:Path -notlike "*Git\cmd*") {
+    $env:Path += ";C:\Program Files\Git\cmd"
+}
 
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host " Gunny 9.2 - Cloning and Assembling Full Source Code" -ForegroundColor Cyan

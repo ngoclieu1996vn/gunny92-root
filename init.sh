@@ -10,7 +10,7 @@
 
 set -e
 
-GITHUB_USER="${1:-YOUR_USERNAME}"
+GITHUB_USER="${1:-ngoclieu1996vn}"
 PROTOCOL="${2:-https}"
 
 echo "======================================================================"
