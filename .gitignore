@@ -2,6 +2,7 @@
 # Ignore subdirectories that are separate repositories (cloned via init.sh / init.ps1)
 WebPortal/
 Gunny92/
+Gunny92_DB/
 macOS_Client/
 
 # Temporary and installer directories
