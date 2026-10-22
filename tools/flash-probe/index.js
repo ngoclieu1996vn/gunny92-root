@@ -1,0 +1,49 @@
+const { app, BrowserWindow, session } = require('electron');
+const fs = require('fs');
+const path = require('path');
+const output = path.resolve(__dirname, '../..');
+const run = 'autocheck-' + Date.now();
+app.setPath('userData', path.join(output, 'profile-' + run));
+app.commandLine.appendSwitch('ppapi-flash-path', process.env.GUNNY_PROBE_FLASH);
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+fs.writeFileSync(path.join(output, 'latest-run.txt'), run);
+fs.writeFileSync(path.join(output, 'latest.jsonl'), '');
+const log = data => {
+  if(data.url) { const url = new URL(data.url); for(const key of ['key','session','password']) if(url.searchParams.has(key)) url.searchParams.set(key,'[redacted]'); data.url=url.toString(); }
+  const line = JSON.stringify({time:new Date().toISOString(),...data}) + '\n';
+  fs.appendFileSync(path.join(output, run + '.jsonl'), line);
+  fs.appendFileSync(path.join(output, 'latest.jsonl'), line);
+};
+app.on('ready', async () => {
+  await session.defaultSession.clearCache();
+  const win = new BrowserWindow({show:false, width:1200, height:850, webPreferences:{plugins:true, backgroundThrottling:false}});
+  session.defaultSession.webRequest.onCompleted(d => log({type:'response', url:d.url, status:d.statusCode, cached:d.fromCache}));
+  session.defaultSession.webRequest.onErrorOccurred(d => log({type:'error', url:d.url, error:d.error}));
+  win.webContents.on('console-message', (_, level, message) => log({type:'console', level, message}));
+  win.webContents.on('plugin-crashed', (_, name) => log({type:'plugin-crashed', name}));
+  await win.loadURL(process.env.GUNNY_PROBE_URL || 'http://127.0.0.1:8888/play2.aspx?user=admin123');
+  log({type:'plugins', plugins:await win.webContents.executeJavaScript('Array.from(navigator.plugins).map(p=>({name:p.name,filename:p.filename}))')});
+  let capturing = false;
+  const capture = async () => {
+    if(capturing) return;
+    capturing = true;
+    try {
+      const shot = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(output,run + '.png'),shot.toPNG());
+      fs.writeFileSync(path.join(output,'latest.png'),shot.toPNG());
+      log({type:'screenshot',file:'latest.png'});
+    } catch(e) {log({type:'capture-error',message:e.message});}
+    capturing = false;
+  };
+  setInterval(capture, 8000);
+  setInterval(() => {
+    const commands = path.join(output,'commands.json');
+    if(!fs.existsSync(commands)) return;
+    try {
+      const actions = JSON.parse(fs.readFileSync(commands,'utf8').replace(/^\uFEFF/,''));
+      fs.unlinkSync(commands);
+      for(const action of actions) win.webContents.sendInputEvent(action);
+    } catch(e) {log({type:'input-error',message:e.message});}
+  }, 500);
+  setTimeout(() => {log({type:'finished'});app.exit(0);}, Math.max(30, Number(process.env.GUNNY_PROBE_DURATION) || 120) * 1000);
+});
