@@ -8,6 +8,7 @@ macOS_Client/
 # Temporary and installer directories
 SQLEXPR_x64_ENU/
 scratch/
+GunnyClient_Release/
 *.tmp
 *.log
 
