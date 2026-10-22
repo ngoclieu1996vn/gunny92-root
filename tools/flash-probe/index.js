@@ -36,13 +36,16 @@ app.on('ready', async () => {
     capturing = false;
   };
   setInterval(capture, 8000);
-  setInterval(() => {
+  setInterval(async () => {
     const commands = path.join(output,'commands.json');
     if(!fs.existsSync(commands)) return;
     try {
       const actions = JSON.parse(fs.readFileSync(commands,'utf8').replace(/^\uFEFF/,''));
       fs.unlinkSync(commands);
-      for(const action of actions) win.webContents.sendInputEvent(action);
+      for(const action of actions) {
+        win.webContents.sendInputEvent(action);
+        await new Promise(resolve => setTimeout(resolve, 75));
+      }
     } catch(e) {log({type:'input-error',message:e.message});}
   }, 500);
   setTimeout(() => {log({type:'finished'});app.exit(0);}, Math.max(30, Number(process.env.GUNNY_PROBE_DURATION) || 120) * 1000);
