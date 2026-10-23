@@ -16,7 +16,13 @@ const log = data => {
 };
 app.on('ready', async () => {
   await session.defaultSession.clearCache();
-  const win = new BrowserWindow({show:false, width:1200, height:850, webPreferences:{plugins:true, backgroundThrottling:false}});
+  const win = new BrowserWindow({show:process.env.GUNNY_PROBE_SHOW === '1', width:1200, height:850, webPreferences:{plugins:true, backgroundThrottling:false}});
+  if(process.env.GUNNY_PROBE_DIAGNOSTIC === '1') {
+    session.defaultSession.webRequest.onBeforeRequest({urls:['http://127.0.0.1:8888/flash/2.png*']}, (details, callback) => {
+      const target = new URL(details.url); target.pathname = '/flash/2.diagnostic.png';
+      callback({redirectURL:target.toString()});
+    });
+  }
   session.defaultSession.webRequest.onCompleted(d => log({type:'response', url:d.url, status:d.statusCode, cached:d.fromCache}));
   session.defaultSession.webRequest.onErrorOccurred(d => log({type:'error', url:d.url, error:d.error}));
   win.webContents.on('console-message', (_, level, message) => log({type:'console', level, message}));
@@ -35,7 +41,7 @@ app.on('ready', async () => {
     } catch(e) {log({type:'capture-error',message:e.message});}
     capturing = false;
   };
-  setInterval(capture, 8000);
+  setInterval(capture, Math.max(500, Number(process.env.GUNNY_PROBE_CAPTURE_MS) || 8000));
   setInterval(async () => {
     const commands = path.join(output,'commands.json');
     if(!fs.existsSync(commands)) return;
@@ -43,7 +49,13 @@ app.on('ready', async () => {
       const actions = JSON.parse(fs.readFileSync(commands,'utf8').replace(/^\uFEFF/,''));
       fs.unlinkSync(commands);
       for(const action of actions) {
-        win.webContents.sendInputEvent(action);
+        if(action.type === 'navigate') {
+          const target = new URL(action.url);
+          if(!['http:','https:'].includes(target.protocol) || (target.hostname !== '127.0.0.1' && target.hostname !== 'localhost')) throw new Error('Probe navigation must stay on localhost HTTP(S).');
+          await win.loadURL(target.toString());
+        } else if(action.type === 'focus') {
+          win.show(); win.focus(); win.webContents.focus();
+        } else win.webContents.sendInputEvent(action);
         await new Promise(resolve => setTimeout(resolve, 75));
       }
     } catch(e) {log({type:'input-error',message:e.message});}

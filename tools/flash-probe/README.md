@@ -17,3 +17,16 @@ luận thành công từ phần trăm tải. Dữ liệu kiểm tra nằm trong 
 
 Để tương tác, ghi mảng sự kiện Electron `sendInputEvent` vào
 `scratch/flash-probe/commands.json`; công cụ đọc và xóa tệp sau khi gửi sự kiện.
+
+Dùng `-ShowWindow` để mở cửa sổ tương tác, `-DurationSeconds 1200` để kiểm tra lâu
+hơn và `-CaptureIntervalMs 1000` để chụp mỗi giây. Chọn một tài khoản kiểm tra
+riêng qua `-Url`; tránh đăng nhập trùng tài khoản đang được sử dụng.
+
+Mảng lệnh cũng hỗ trợ `{ "type": "focus" }` và
+`{ "type": "navigate", "url": "http://127.0.0.1:8888/play2.aspx?user=ai_room_probe" }`.
+Điều hướng chỉ chấp nhận localhost hoặc 127.0.0.1. `focus` đưa cửa sổ kiểm tra
+ra trước và đặt tiêu điểm trước khi gửi thao tác chuột.
+
+Tùy chọn `-DiagnosticClient` chuyển riêng yêu cầu `/flash/2.png` của cửa sổ
+kiểm tra sang `/flash/2.diagnostic.png`. Cần tự tạo bản SWF chẩn đoán tại đó
+trước khi dùng; tùy chọn này không đổi client của người chơi khác.
