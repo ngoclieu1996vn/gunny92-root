@@ -41,6 +41,9 @@ function attachMetadataCapture(contents, output, log) {
       const response = pending.get(params.requestId); pending.delete(params.requestId);
       command(debuggerApi,'Network.getResponseBody', {requestId:params.requestId}).then(result => {
         if (!result || typeof result.body !== 'string') { log({type:'metadata-error',url:sanitizeUrl(response.url),message:'Response body unavailable'}); return; }
+        if (!result.base64Encoded && result.body.startsWith('x') && result.body.includes('\ufffd')) {
+          log({type:'metadata-error',url:sanitizeUrl(response.url),message:'Compressed response was decoded as text; fetch original bytes from a verified public endpoint'}); return;
+        }
         const bytes = Buffer.from(result.body, result.base64Encoded ? 'base64' : 'utf8');
         if (!bytes.length || bytes.length > 64 * 1024 * 1024) { log({type:'metadata-error',url:sanitizeUrl(response.url),message:'Empty or oversized table'}); return; }
         const url = new URL(response.url);

@@ -59,6 +59,11 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'index.js'),'utf8'),conte
  assert.deepEqual(fs.readFileSync(path.join(directory,records[0].file)),bytes);
  assert.deepEqual(fs.readFileSync(path.join(directory,records[1].file)),otherBytes);
  const before=2;
+ window.webContents.debugger.body={body:'x\ufffd\ufffdcorrupted-compressed-text',base64Encoded:false};
+ window.webContents.debugger.emit('message',{},'Network.responseReceived',{requestId:'bad-text',response:{url:'https://req.gnddt.com/Request/TemplateAllList.xml',status:200}});
+ window.webContents.debugger.emit('message',{},'Network.loadingFinished',{requestId:'bad-text'});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(fs.readdirSync(directory).filter(name=>name.endsWith('.bin')).length,before,'Do not save compressed bytes damaged by debugger text decoding');
  window.webContents.debugger.emit('message',{},'Network.responseReceived',{requestId:'login-1',response:{url:'https://www.gnddt.com/api/login.ashx?password=secret',status:200}});
  window.webContents.debugger.emit('message',{},'Network.loadingFinished',{requestId:'login-1'});
  assert.equal(fs.readdirSync(directory).filter(name=>name.endsWith('.bin')).length,before,'Never capture login response bodies');

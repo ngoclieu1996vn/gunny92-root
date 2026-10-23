@@ -41,7 +41,10 @@ Chế độ này lưu riêng các phản hồi thành công của `TemplateAllLi
 `ShopItemList`/`ShopItemAllList` và `config.xml` vào
 `scratch/item-metadata-probe/metadata`. `captures.jsonl` ánh xạ địa chỉ đã che
 giá trị query với file dữ liệu; tên file chứa hash cả địa chỉ và nội dung để
-không ghi đè các phiên bản khác nhau. Dữ liệu nén được giữ nguyên byte.
+không ghi đè các phiên bản khác nhau. Phản hồi CDP dạng base64 giữ nguyên byte.
+Nếu server gắn MIME XML cho bảng zlib, Chromium có thể trả chuỗi đã mất byte;
+công cụ báo lỗi thay vì lưu chuỗi đó như bảng hợp lệ. Khi endpoint đã được
+xác minh là công khai, tải lại bằng HTTP nhị phân và kiểm tra giải nén/XML.
 Không ghi ảnh màn hình, console của trang hoặc nội dung phản hồi đăng nhập.
 Các cửa sổ game mới giữ cơ chế mở mặc định của Electron và cũng được gắn bộ
 thu dữ liệu. Hồ sơ đăng nhập nằm trong scratch, không đưa lên Git.
