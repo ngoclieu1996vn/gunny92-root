@@ -1,6 +1,6 @@
 # Bàn giao cho AI tiếp tục dự án Gunny 9.2
 
-Cập nhật: 2026-10-23, sau đợt sửa kết quả trận, cập nhật máu PvP và hướng dẫn chiến đấu.
+Cập nhật: 2026-10-23, sau sửa nhận đính kèm thư và chuẩn bị thu bảng vật phẩm từ GNDdt.
 
 ## Đọc trước khi thao tác
 
@@ -9,6 +9,21 @@ Cập nhật: 2026-10-23, sau đợt sửa kết quả trận, cập nhật máu
 - Người dùng muốn sửa backend cho Flash/asset mới, kiểm tra bằng **FlashBrowser thực sự**, chạy lại server và đẩy bản sửa lên Git. Trình duyệt không có Flash không chứng minh được game chạy.
 - Người dùng đã yêu cầu bỏ mã xác thực **trong game**; đã thực hiện. Không tự bật lại. Đăng nhập tài khoản và RSA vẫn giữ nguyên.
 - Không cần hỏi lại những bước triển khai thông thường đã được cho phép. Tuy nhiên phải kiểm tra trạng thái hiện tại trước khi làm; máy có thể đã sleep hoặc được khởi động lại.
+
+## Đợt mới nhất: thư GM, dữ liệu trang bị và đăng nhập GNDdt
+
+- **Đã sửa nhận đính kèm thư; người dùng xác nhận “đã nhận thư được rồi”.** Món tái hiện là TemplateID **8220**. Trong DB hiện tại đây là **Vòng Tay 12 Tuổi +2**, không phải Vòng Tay 17 Tuổi.
+- Nguyên nhân gói **113**: client gửi `byte selectionType, int mailCount, int mailIDs[]`; handler cũ đọc `int mailID, byte selectionType`, nên đọc sai ID. Client cũng cần `int resultCount` trước từng kết quả `mailID, slotCount, slotIDs[]` nhưng phản hồi cũ thiếu trường này.
+- gameSrc commit **`0f22221`** đã push: `MailAttachmentV92` kiểm tra toàn bộ framing, số lượng/ID/ID trùng trước khi dispatch; gắn ID người chơi đã xác thực; chuyển từng thư qua handler cũ. Các kiểm tra chủ sở hữu, mật khẩu túi, sức chứa và thưởng vẫn dùng logic cũ. `PatchMatchmaking` giữ nguyên thân IL của handler cũ và thêm adapter phản hồi. Đã bổ sung Compile Include vào csproj.
+- Pipeline `Build-Compatibility.ps1` đã PASS toàn bộ sau sửa. `MailAttachmentTests` kiểm tra wire format, dữ liệu sai và framing phản hồi; `MailAttachmentHookTests` gọi DLL đã patch với túi khóa, xác nhận routing vào logic cũ mà không cấp vật phẩm hoặc truy cập SQL. Hai test này đã chạy lại PASS sau triển khai. Code review đã hoàn tất; thiếu Compile Include được sửa.
+- Server commit **`a29787a`** đã push. Đã triển khai qua `tools/Apply-MatchmakingFix.ps1` local. Backup **`scratch/matchmaking-deploy-backup-20261023-161642`**. Bốn DLL runtime so SHA256 khớp `Gunny92/bin/compatibility`. Road helper hash **14FBAE36FDEAA1B4573987CAF0FB6695860E851565F5BEA34F35BDBDD4FC7357**, Road main **CA6AD5DAED78E38A282CCC338304997DC5FFED673D94F156426A90B55CE7D808**. PID kiểm tra cuối: Center **21136**, Fight **4984**, Road **28492**; luôn đọc lại trước thao tác.
+- Chưa có template gốc của **Vòng Tay 17 Tuổi** trong DB hay các bảng Request local. Không tự bịa ID/chỉ số từ ảnh. Cache client gốc đã được kiểm tra: 4175 ByteArray, chủ yếu SWF/ảnh/ZIP UI; không tìm thấy bảng TemplateAllList trong cache. Báo cáo local `scratch/native-item-cache/REPORT.md`; không commit cache hay dữ liệu tài khoản. Các config tĩnh của client có đường dẫn cũ, không coi là bằng chứng endpoint runtime.
+- Theo yêu cầu người dùng, đã mở riêng FlashBrowser thu dữ liệu cho **https://www.gnddt.com/** bằng `-CaptureMetadata -OutputName item-metadata-probe -ShowWindow`. Chỉ lưu phản hồi bảng TemplateAllList/ShopItemList và config; che mọi giá trị query, không ghi ảnh/console/nội dung đăng nhập. Hồ sơ nằm trong scratch, không commit. Xem `tools/flash-probe/README.md` và test `test-metadata-capture.cjs` (PASS).
+- Lỗi màn hình trắng ban đầu của probe đã xử lý bằng khởi tạo renderer `about:blank` trước khi chờ CDP Network.enable; runtime Electron **9.4.4**, plugin Flash có mặt. Sau đó người dùng gặp **“OOPS! Đăng nhập vào server thất bại!!! Hãy thử đăng nhập lại.”**, trong khi client gốc chơi được. **Chưa có bằng chứng admin chặn trình duyệt.** Phát hiện probe tự chặn `new-window` rồi gọi `loadURL` cùng cửa sổ, làm thay đổi referrer/opener/luồng mở trang. Đã bỏ chuyển hướng này, để Electron mở cửa sổ mặc định và gắn bộ thu dữ liệu vào cửa sổ con. Test regression PASS; chưa xác nhận đăng nhập máy chủ thành công sau thay đổi.
+- Probe mới đã mở lúc **16:45 ngày 23/10**, `metadata-ready` và trang chủ tải xong **16:45:11 (+07)**. Đang chờ người dùng thử đăng nhập/chọn server lại qua câu hỏi bất đồng bộ. Log `scratch/item-metadata-probe/latest.jsonl`; bảng nếu thu được ở `metadata/captures.jsonl` và `.bin`. Chưa thu được bảng vật phẩm tại thời điểm cập nhật. Nếu còn OOPS, tiếp tục xác định bước chuyển trang thất bại, không khẳng định remote chặn chỉ dựa thông báo này.
+- Code review công cụ yêu cầu tránh ghi đè body cùng endpoint: tên file nay chứa SHA256 của endpoint và nội dung. Giới hạn thời gian probe được đăng ký trước các thao tác chờ tải trang. Kiểm thử byte nén, không lưu phản hồi login, che URL, popup mặc định và hai body khác nhau cùng endpoint đều PASS.
+- **Không đóng hay sửa client gốc đang chơi** (`GunnyClient.exe` / `GunnyBrowser.exe`). Chỉ dừng probe có ExecutablePath đúng `scratch/item-metadata-probe/FlashBrowser.exe` khi cần; không stop toàn bộ FlashBrowser. Không restart Road/Fight thêm chỉ để sửa công cụ thu dữ liệu.
+- **Chỉ đạo mới nhất của người dùng: dừng thử GNDdt, chuyển sang `https://idgunny.zing.vn/login-game?download=direct`.** Đã đóng riêng probe GNDdt và mở probe Zing ở `scratch/zing-item-metadata-probe` với `-CaptureMetadata -ShowWindow -DurationSeconds 3600`. Từ đây đọc log/bảng ở thư mục Zing; GNDdt không còn là nhánh cần tiếp tục. Giữ popup mặc định, bộ thu dữ liệu không giới hạn tên miền GNDdt. Cần người dùng tự đăng nhập/chọn máy chủ trên cửa sổ Zing rồi kiểm tra bảng thực tế; chưa có ID hoặc chỉ số Vòng Tay 17 Tuổi để đồng bộ GM.
 
 ## Thư mục và các repo
 
