@@ -1,6 +1,6 @@
 # Bàn giao cho AI tiếp tục dự án Gunny 9.2
 
-Cập nhật: 2026-10-23, sau sửa nhận thư và đồng bộ toàn bộ danh mục vật phẩm Zing.
+Cập nhật: 2026-10-23, sau đồng bộ danh mục và bắt đầu đối chiếu Ma công/Ma kháng với lực chiến.
 
 ## Đọc trước khi thao tác
 
@@ -10,7 +10,16 @@ Cập nhật: 2026-10-23, sau sửa nhận thư và đồng bộ toàn bộ danh
 - Người dùng đã yêu cầu bỏ mã xác thực **trong game**; đã thực hiện. Không tự bật lại. Đăng nhập tài khoản và RSA vẫn giữ nguyên.
 - Không cần hỏi lại những bước triển khai thông thường đã được cho phép. Tuy nhiên phải kiểm tra trạng thái hiện tại trước khi làm; máy có thể đã sleep hoặc được khởi động lại.
 
-## Mới nhất: đồng bộ toàn bộ danh mục Zing vào GM và Flash
+## Đang kiểm tra: Ma công/Ma kháng và công thức lực chiến
+
+- Người dùng báo hai chỉ số Ma công/Ma kháng ở client mới đang lỗi; muốn biết tăng mỗi chỉ số thì lực chiến tăng bao nhiêu và đồng bộ cách tính theo bản mới. **Chưa sửa hoặc triển khai công thức mới, chưa có hệ số chính thức.**
+- Đã kiểm tra source `Game.Server/Game.Server.GameObjects/GamePlayer.cs:5616` và **IL thực tế của Server/road/Game.Server.dll** bằng Mono.Cecil: `UpdateFightPower` chỉ dùng Attack/Defence/Agility/Luck, hp, GetBaseAttack/GetBaseDefence, cấu hình probability và vũ khí phụ. Không đọc MagicAttack/MagicDefence. Bản IL lưu local **`scratch/magic-power-inspect/UpdateFightPower.runtime.il`**. Chỉ tăng riêng hai giá trị ma thuật, giữ các đầu vào cũ không đổi, hiện **không có phần lực chiến cộng trực tiếp** từ chúng; không áp dụng kết luận 0 này cho Zing.
+- `PlayerProperty.CreateBaseProp` có dictionary MagicAttack/MagicDefence với các nguồn MagicStone/Horse/Texp/... nhưng khởi tạo bằng 0. `InventoryResponseV92` có ghi chú rõ magic stone/jade/enchant chưa triển khai, thêm các trường rỗng để tương thích schema client. `PlayerEquipInventory` có tổng ma thuật của ExplorerManual nhưng không chứng minh đã có tổng Ma công/Ma kháng đầy đủ cho mọi nguồn. Không coi việc UI có hai dòng hay đã nhập template là backend tính hai chỉ số hoàn chỉnh.
+- Đã export từ **Flash/2.png thực tế** các class `ddt.data.player.PlayerInfo`, `SelfInfo`, `ddt.manager.FightPowerManager` sang **scratch/magic-power-inspect/scripts** bằng FFDec. PlayerInfo có getter/setter MagicAttack/MagicDefence; PlayerManager đọc hai int trong profile; FightPowerManager theo dõi thay đổi trang bị và yêu cầu server cập nhật lực chiến, không thấy công thức quy đổi Ma công/Ma kháng trong các class kiểm tra. Không khẳng định đã tìm hết mọi SWF Zing.
+- Tài liệu chính thức **https://gunnypc.vnggames.com/su-kien/phien-ban-gunny-bac-thay-luyen-thu/he-thong-ma-thach-3334.html** xác nhận hai chỉ số ảnh hưởng lực chiến nhưng bài này không công bố hệ số/công thức. Không gán bừa +1 Ma công = X lực chiến, không hứa suy ra công thức server chỉ từ client hoặc TemplateAllList.
+- Đang chờ câu hỏi bất đồng bộ: **người dùng đang tăng hai chỉ số qua Ma thạch, Tu luyện hay Trang bị/tính năng khác?** Cần xác định nguồn cộng trước khi sửa. Muốn khớp Zing cần source/config công thức có căn cứ hoặc nhiều cặp số đo trước/sau, đổi riêng Ma công rồi riêng Ma kháng, giữ các thuộc tính khác, buff và trang bị không đổi; kiểm tra thêm ở nhiều mức để phân biệt quan hệ tuyến tính/phụ thuộc chỉ số khác và làm tròn. Không tự nâng cấp/tiêu tài nguyên trên tài khoản Zing đang mở.
+
+## Đợt trước: đồng bộ toàn bộ danh mục Zing vào GM và Flash
 
 - **Phát hiện bổ sung sau khi người dùng thử gửi 85784:** tìm kiếm GM đọc **Db_Tank.Shop_Goods**, nhưng **Db_Tank41.SP_Admin_SendUserItem** kiểm tra `Shop_Goods` riêng trong **Db_Tank41**. Bỏ sót bản này trong lần nhập đầu khiến SP tự đổi template không có thành 0, tạo thư rỗng mà API vẫn báo thành công. Người dùng có thư rỗng **85094/85097/85098**; không có item85784 được tạo ở lần kiểm tra ban đầu. Không gán vật phẩm vào các thư cũ vì chúng không lưu yêu cầu gốc; đã nhờ người dùng gửi lại một lần sau sửa.
 - **Đã sửa đầy đủ bản player catalog:** `tools/Sync-PlayerItemCatalog.ps1 -Apply` mirror **23.362** template chính sang Db_Tank41, thêm **10.445** từ nền **12.919**, giữ riêng **2** ID **72083/72084**, tổng bảng player **23.364**. Giữ cột `Remark/Valid/Count/Price` trên dòng cũ. Cột `Hole` của Db_Tank41 ngắn hơn bản chính; đã mở rộng **nvarchar(50)→nvarchar(100)** trong transaction. Backup thành công **`scratch/player-item-catalog-backup-20261023-171105`**; có SQL XML/schema, độ dài Hole cũ (100 byte) và báo cáo. Lần trước lỗi truncation đã rollback.
